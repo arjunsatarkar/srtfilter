@@ -3,21 +3,18 @@ import dataclasses
 import re
 
 
-@dataclasses.dataclass
-class Event:
-    start: str
-    end: str
-    content: str
-
-
 class SRT:
+    # Can't use the one from Timecode because that has named groups, which can't be duplicates
+    timecode_pattern_str = r"\d\d:\d\d:\d\d,\d\d\d"
+    timing_line_pattern = re.compile(
+        rf"({timecode_pattern_str}) --> ({timecode_pattern_str})"
+    )
+
     def __init__(self):
         self.events: list[Event] = []
 
     @staticmethod
     def from_str(text: str) -> SRT:
-        TIMESTAMP_CAPTURE = r"(\d\d:\d\d:\d\d,\d\d\d)"
-        TIMING_REGEX = rf"{TIMESTAMP_CAPTURE} --> {TIMESTAMP_CAPTURE}"
 
         srt = SRT()
         counter = 1
@@ -32,13 +29,13 @@ class SRT:
                 )
             counter += 1
 
-            match = re.fullmatch(TIMING_REGEX, timing_str)
+            match = re.fullmatch(SRT.timing_line_pattern, timing_str)
             if match is None:
                 raise ParseError(f"Invalid timing info '{timing_str}'", event_str)
 
             content = "\n".join(content_lines + [""])
 
-            srt.events.append(Event(match[1], match[2], content))
+            srt.events.append(Event(Timecode(match[1]), Timecode(match[2]), content))
 
         return srt
 
@@ -51,8 +48,36 @@ class SRT:
         return result
 
 
+@dataclasses.dataclass
+class Event:
+    start: Timecode
+    end: Timecode
+    content: str
+
+
+class Timecode:
+    timecode_pattern = re.compile(
+        r"(?P<hour>\d\d):(?P<minute>\d\d):(?P<second>\d\d),(?P<millisecond>\d\d\d)"
+    )
+
+    def __init__(self, timecode_str: str):
+        match = re.fullmatch(self.timecode_pattern, timecode_str)
+        if match is None:
+            raise ParseError(f"Invalid timecode '{timecode_str}'", timecode_str)
+        self.hour = int(match["hour"])
+        self.minute = int(match["minute"])
+        self.second = int(match["second"])
+        self.millisecond = int(match["millisecond"])
+
+    def __repr__(self):
+        return f"Timecode('{self.hour:02}:{self.minute:02}:{self.second:02},{self.millisecond:03}')"
+
+    def __str__(self):
+        return f"{self.hour:02}:{self.minute:02}:{self.second:02},{self.millisecond:03}"
+
+
 class ParseError(Exception):
-    def __init__(self, reason: str, event_str: str):
-        super().__init__(f"{reason}\nwhile parsing event:\n{event_str}")
+    def __init__(self, reason: str, context_str: str):
+        super().__init__(f"{reason}\nwhile parsing the following:\n{context_str}")
         self.reason = reason
-        self.event_str = event_str
+        self.event_str = context_str

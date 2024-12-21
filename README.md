@@ -20,7 +20,7 @@ More filters can be added in the `src/srtfilter/filters` directory.
 
 ### Library
 
-```
+```python
 import srtfilter.parse as srtparse
 import sys
 
@@ -28,10 +28,13 @@ with open("input.srt") as f:
     srt = srtparse.SRT.from_str(f.read())
 
 for event in srt.events:
-    print(event.start, event.end, event.content)
-    event.content = event.content.upper() # for example
+    # Make every event start and end a second later
+    event.start.second += 1
+    event.end.second += 1
+    # Capitalize all the displayed text
+    event.content = event.content.upper()
 
-# srt.__str__() produces a valid SRT file from the parsed representation
+# SRT.__str__() produces a valid SRT file from the parsed representation
 sys.stdout.write(str(srt))
 ```
 
@@ -44,5 +47,5 @@ MIT License; see `LICENSE.txt`.
 - [x] Parse SRT
 - [x] Make CLI tool modular
 - [x] Add filter for breaking lines
-- [ ] Parse timecodes and allow arithmetic with them
+- [x] Parse timecodes into their numeric components
 - [ ] More filters? As and when use-cases emerge
