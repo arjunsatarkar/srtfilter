@@ -1,69 +1,45 @@
 from __future__ import annotations
 import dataclasses
-import enum
-import itertools
 import re
-from typing import List
 
 
 @dataclasses.dataclass
 class Event:
-    start: str | None = None
-    end: str | None = None
-    content: str | None = None
+    start: str
+    end: str
+    content: str
 
 
 class SRT:
     def __init__(self):
-        self.events: List[Event] = []
+        self.events: list[Event] = []
 
     @staticmethod
     def from_str(text: str) -> SRT:
-        class ParseState(enum.Enum):
-            COUNTER = enum.auto()
-            TIMING = enum.auto()
-            CONTENT = enum.auto()
-
-        PARSE_STATES = itertools.cycle(iter(ParseState))
         TIMESTAMP_CAPTURE = r"(\d\d:\d\d:\d\d,\d\d\d)"
         TIMING_REGEX = rf"{TIMESTAMP_CAPTURE} --> {TIMESTAMP_CAPTURE}"
 
         srt = SRT()
-        lines = text.split("\n")
         counter = 1
-        state = next(PARSE_STATES)
-        event = Event()
-        for line_num, line in enumerate(lines, 1):
-            if not line:
-                match state:
-                    case ParseState.CONTENT:
-                        srt.events.append(event)
-                        event = Event()
-                        state = next(PARSE_STATES)
-                    case ParseState.COUNTER:
-                        pass
-                    case _:
-                        raise ParseError(f"Unexpected blank line (line {line_num})")
-                continue
-            match state:
-                case ParseState.COUNTER:
-                    if int(line) == counter:
-                        counter += 1
-                        state = next(PARSE_STATES)
-                    else:
-                        raise ParseError(
-                            f"Invalid counter, expected {counter} (line {line_num})"
-                        )
-                case ParseState.TIMING:
-                    match = re.fullmatch(TIMING_REGEX, line)
-                    if match is None:
-                        raise ParseError(f"Invalid timing info (line {line_num})")
-                    event.start, event.end = match[1], match[2]
-                    state = next(PARSE_STATES)
-                case ParseState.CONTENT:
-                    event.content = (
-                        event.content if event.content is not None else ""
-                    ) + f"{line}\n"
+        events = [event for event in text.split("\n\n") if event.strip()]
+        for event_str in events:
+            lines = event_str.split("\n")
+            counter_str, timing_str, content_lines = lines[0], lines[1], lines[2:]
+
+            if int(counter_str) != counter:
+                raise ParseError(
+                    f"Invalid counter '{counter_str}'; expected {counter}", event_str
+                )
+            counter += 1
+
+            match = re.fullmatch(TIMING_REGEX, timing_str)
+            if match is None:
+                raise ParseError(f"Invalid timing info '{timing_str}'", event_str)
+
+            content = "\n".join(content_lines + [""])
+
+            srt.events.append(Event(match[1], match[2], content))
+
         return srt
 
     def __str__(self):
@@ -76,4 +52,7 @@ class SRT:
 
 
 class ParseError(Exception):
-    pass
+    def __init__(self, reason: str, event_str: str):
+        super().__init__(f"{reason}\nwhile parsing event:\n{event_str}")
+        self.reason = reason
+        self.event_str = event_str
