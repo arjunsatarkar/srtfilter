@@ -1,35 +1,26 @@
 #!/usr/bin/env python3
 """
-Given an SRT file, remove existing line breaks and reinsert them automatically
-at word boundaries so as not to exceed 42 characters per line, trying to keep
-lines within a single subtitle event at roughly the same length.
+Given an SRT event, remove existing line breaks and insert new ones. All
+insertion will be at word boundaries, lines will usually not exceed 42
+characters, and lines within the event will if possible be roughly the same
+length.
 
-NOTE: Using this script is *generally a bad idea*; like many aspects of
+NOTE: Using this filter is *generally a bad idea*; like many aspects of
 subtitling, placing line breaks benefits from contextual judgement. However,
 if an existing subtitle file has no line breaks or far too many, as is the case
 sometimes, this is an easy way to improve readability.
 """
-import click
-import parse_srt
 import math
-import sys
 import typing
+from .. import parse
 
 # May still be exceeded if there are no word boundaries to wrap at
 MAX_LINE_LENGTH = 42
 
 
-@click.command()
-@click.argument("in_file_path")
-def main(in_file_path: str):
-    with open(in_file_path) as f:
-        text = f.read()
-    srt = parse_srt.SRT.from_str(text)
-
-    for event in srt.events:
-        event.content = rebreak(event.content)
-
-    sys.stdout.write(str(srt))
+def filter(event: parse.Event) -> parse.Event:
+    event.content = rebreak(event.content)
+    return event
 
 
 def rebreak(text: str) -> str:
@@ -64,7 +55,3 @@ def rebreak(text: str) -> str:
         target_line_num = get_target_line_num(len(text))
 
     return ("\n".join(lines) if lines else text) + "\n"
-
-
-if __name__ == "__main__":
-    main()

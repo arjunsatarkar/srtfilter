@@ -1,7 +1,10 @@
-check: typecheck lint
+check: typecheck check_style
 
 typecheck:
 	pyright
 
-lint:
-	black --check *.py
+check_style:
+	black --check src
+
+format:
+	black src
