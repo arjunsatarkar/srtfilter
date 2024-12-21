@@ -70,7 +70,7 @@ class Timecode:
         self.millisecond = int(match["millisecond"])
 
     def __repr__(self):
-        return f"Timecode('{self.hour:02}:{self.minute:02}:{self.second:02},{self.millisecond:03}')"
+        return f"Timecode('{str(self)}')"
 
     def __str__(self):
         return f"{self.hour:02}:{self.minute:02}:{self.second:02},{self.millisecond:03}"
