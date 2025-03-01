@@ -18,6 +18,8 @@ Break lines automatically (to handle existing files with poor line breaks):
 
 More filters can be added in the `src/srtfilter/filters` directory.
 
+If you want to diff an SRT against an edited version, the output will have a lot of noise if an event was inserted or deleted in the middle (changing all the subsequent numbers). To make this easier to handle, use `--output-format diffable_srt`, which omits those numbers altogether. This is not an actual subtitle format and should not be distributed or used in any player.
+
 ### Library
 
 ```python
