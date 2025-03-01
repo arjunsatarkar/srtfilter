@@ -7,7 +7,7 @@ check_style:
 	black --check src
 
 build: check
-	pyproject-build
+	python3 -m build
 
 format:
 	black src

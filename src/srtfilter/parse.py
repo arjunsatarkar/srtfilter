@@ -1,6 +1,13 @@
 from __future__ import annotations
 import dataclasses
+import enum
 import re
+
+
+class OutputFormat(enum.Enum):
+    none = enum.auto()
+    srt = enum.auto()
+    diffable_srt = enum.auto()
 
 
 class SRT:
@@ -40,11 +47,24 @@ class SRT:
         return srt
 
     def __str__(self):
+        return self.to_output_format(OutputFormat.srt)
+
+    def to_output_format(self, format: OutputFormat) -> str:
         result = ""
-        for counter, event in enumerate(self.events, 1):
-            result += f"{counter}\n"
-            result += f"{event.start} --> {event.end}\n"
-            result += f"{event.content}\n"
+        match format:
+            case OutputFormat.none:
+                pass
+            case OutputFormat.srt:
+                for counter, event in enumerate(self.events, 1):
+                    result += f"{counter}\n"
+                    result += f"{event.start} --> {event.end}\n"
+                    result += f"{event.content}\n"
+            case OutputFormat.diffable_srt:
+                # Not an actual subtitle format, just drops the counter to
+                # make it easier to diff actual changes (in timing/content).
+                for event in self.events:
+                    result += f"{event.start} --> {event.end}\n"
+                    result += f"{event.content}\n"
         return result
 
 
